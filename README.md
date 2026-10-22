@@ -4,9 +4,9 @@ Personalized learning recommendations and grounded consultation with Microsoft F
 
 직원의 직무·역량·학습 이력에 맞춘 교육 추천과 읽기 전용 교육 상담을 시연하는 프로젝트입니다. Microsoft Fabric에서 추천 결과를 배치로 생성하고, Azure의 Private API가 검증된 결과를 조회합니다. Microsoft Foundry Agent Service의 Prompt Agent는 이 API를 호출해 추천 이유를 설명하고 교육 과정을 비교합니다.
 
-**업무 데이터 서비스를 공개하지 않고, Private Endpoint와 Private DNS를 사용해 추천 조회·결과 게시·상담 도구 호출을 구성할 수 있습니다.** 이 저장소에는 해당 인프라의 Bicep 코드와 실제 연동 검증 기록이 있습니다. 다만 Private 접근 구성과 완전한 인터넷 차단은 다르며, 현재 데모가 국내 처리·저장 요건 전체를 충족한다는 의미도 아닙니다.
+**업무 데이터 서비스를 공개하지 않고, Private Endpoint와 Private DNS를 사용해 추천 조회·결과 게시·상담 도구 호출을 구성합니다.** 저장소에는 인프라의 Bicep 코드, 추천 배치, API와 상담 에이전트 코드가 포함되어 있습니다. Private 접근 구성은 완전한 인터넷 차단과 다르며, 국내 처리·저장 요건은 별도 검토가 필요합니다.
 
-모든 교육 과정·학습자·학습 이력은 합성 데이터입니다. 실제 직원 정보나 외부 교육기관의 과정 설명은 사용하지 않습니다. 요구사항의 기준 문서는 [요구사항 정의서](docs/requirements.md)이며, 아래 구현 현황은 현재 소스와 2026-10-20~22의 실행 기록을 기준으로 정리했습니다. Azure 자원의 현재 실행 상태를 실시간으로 나타내는 문서는 아닙니다.
+모든 교육 과정·학습자·학습 이력은 합성 데이터입니다. 실제 직원 정보나 외부 교육기관의 과정 설명은 사용하지 않습니다. 기능 범위와 설계 조건은 [요구사항 정의서](docs/requirements.md)를 기준으로 합니다.
 
 ## 목차
 
@@ -25,13 +25,11 @@ Personalized learning recommendations and grounded consultation with Microsoft F
 
 ## 프로젝트 개요
 
-프로젝트 표시명은 **Azdemy**, 저장소와 로컬 디렉터리 이름은 `azdemy-rec-demo`입니다. `Az`는 Azure를 뜻합니다.
+**Azdemy**의 `Az`는 Azure를 뜻합니다. 저장소 이름은 `azdemy-rec-demo`입니다.
 
 이 데모는 추천 생성과 자연어 상담의 책임을 분리합니다. 추천 순위는 Fabric 배치가 결정하고, 추천 이유는 데이터 근거와 버전별 템플릿으로 생성합니다. 상담 에이전트는 게시된 순위와 이유를 그대로 설명하며, 별도의 공식 추천 순위를 만들지 않습니다.
 
-기존 배포와 연결된 Azure/Fabric 자원명·hostname, `GENIUS_*` 환경변수, `genius_recommendations` Delta 테이블과 저장 경로는 연동 식별자로 유지합니다. 소스의 공유 Python 패키지 `azdemy_recommendations`와 Delta 테이블 이름은 서로 다릅니다. 프로젝트명 변경을 위해 기존 자원을 재생성하거나 게시된 추천 결과를 수정하지 않습니다.
-
-프로젝트 코드는 [MIT License](LICENSE)로 공개합니다. 인프라 참고 코드의 출처와 기존 라이선스는 [제3자 고지](infra/THIRD-PARTY-NOTICES)에 보존합니다. 로컬에 설치한 agent skill 묶음은 데모 배포물이 아니므로 저장소에 포함하지 않습니다.
+프로젝트 코드는 [MIT License](LICENSE)로 공개합니다. 인프라 참고 코드의 출처와 라이선스는 [제3자 고지](infra/THIRD-PARTY-NOTICES)를 참고하세요.
 
 | 시연 항목 | 구현 방식 |
 |---|---|
@@ -42,14 +40,14 @@ Personalized learning recommendations and grounded consultation with Microsoft F
 | 과정 검색·비교 | 합성 카탈로그의 과정 사실과 `source_ref` 인용 |
 | 오류 구분 | 권한 부족·검색 0건·추천 없음·데이터 만료·시스템 오류를 별도 상태로 표현 |
 
-### 실제 연동과 합성·데모 구성
+### 구현 범위
 
 | 구분 | 현재 범위 |
 |---|---|
-| 실제 Azure 인프라 | VNet, Private Endpoint, Private DNS, Bastion, Jump host, Private App Service |
-| 실제 상담 | Foundry Prompt Agent, 모델 추론, 읽기 전용 OpenAPI 도구, Managed Identity 인증 |
-| 실제 Fabric 실행 | 전용 workspace, Lakehouse Delta, Spark ML 학습, MLflow 등록, 수동 Spark 배치 |
-| 실제 결과 게시 | 검증된 export를 Private SCM으로 전송하고 버전별 JSON 활성화 |
+| Azure 인프라 | VNet, Private Endpoint, Private DNS, Bastion, Jump host, Private App Service |
+| 교육 상담 | Foundry Prompt Agent, 모델 추론, 읽기 전용 OpenAPI 도구, Managed Identity 인증 |
+| 추천 생성 | 전용 Fabric workspace, Lakehouse Delta, Spark ML 학습, MLflow 등록, 수동 Spark 배치 |
+| 결과 게시 | 검증된 export를 Private SCM으로 전송하고 버전별 JSON 활성화 |
 | 데모 Serving | 기존 App Service의 지속 저장 영역 사용. 별도 production Serving DB 없음 |
 | 합성 데이터 | 6개 카테고리의 교육 30개, 학습자 2명, 학습 이력·직무 정책 |
 | 미통합 원천 | 사내 교육·인사 시스템, 실제 직원 인증과 최종 사용자 OBO |
@@ -185,7 +183,7 @@ Azure 기본 인프라는 [main.bicep](infra/main.bicep), Fabric 연결용 Azure
 
 템플릿 구성은 기본 Azure 서비스의 Private Endpoint 6개·Private DNS zone 8개에 Fabric용 Private Endpoint 1개·`privatelink.fabric.microsoft.com` zone을 추가하는 형태입니다. Fabric 공개 접근 차단은 전용 workspace의 inbound 정책에만 적용하며, tenant 전체나 다른 workspace의 정책을 변경하지 않습니다.
 
-저장소의 실행 기록에는 내부에서 Fabric Items·OneLake 조회 HTTP 200, 외부에서 HTTP 403 정책 차단을 확인한 결과가 있습니다. Azure API 역시 Private 경로에서 인증 검사를 수행하며, 외부 직접 접근은 차단됐습니다. 접속 방법과 상세 결과는 [Private 인프라 가이드](infra/README.md)에 있습니다.
+Fabric Items·OneLake와 Azure API는 Private 경로로 접근합니다. API는 네트워크 접근과 별도로 인증을 검사하며, 외부 직접 접근은 차단합니다. 접속 방법은 [Private 인프라 가이드](infra/README.md)를 참고하세요.
 
 ### Private 구성의 범위와 예외
 
@@ -344,7 +342,7 @@ API는 JWT의 RS256 서명, tenant, issuer, audience, 만료와 필수 claim을 
 
 ### 사전 준비
 
-명령은 Windows PowerShell에서 저장소 루트를 기준으로 실행합니다. Azure 배포 대상은 Linux Python 3.12이며, 기존 로컬 실행 기록은 Python 3.14 기준입니다. Azure/Fabric 작업에는 Azure CLI, Bicep, SSH, `curl.exe`와 해당 작업의 Entra·RBAC 권한이 필요합니다. 로컬 테스트만 실행할 때는 Azure 자원이나 로그인 없이 진행할 수 있습니다.
+명령은 Windows PowerShell에서 저장소 루트를 기준으로 실행합니다. Azure 배포 대상은 Linux Python 3.12이며, 로컬 개발·테스트 환경은 Python 3.14입니다. Azure/Fabric 작업에는 Azure CLI, Bicep, SSH, `curl.exe`와 해당 작업의 Entra·RBAC 권한이 필요합니다. 로컬 테스트만 실행할 때는 Azure 자원이나 로그인 없이 진행할 수 있습니다.
 
 처음 구성할 때 가상환경을 만들고 개발 의존성을 설치합니다. 기존 가상환경이 있으면 생성 단계는 생략합니다.
 
@@ -380,6 +378,8 @@ $env:GENIUS_PRINCIPAL_LEARNERS = '{"<allowed-principal-object-id>":"learner-a"}'
 
 저장소에는 현재 데모 환경에 고정된 자원명·ID·hostname이 포함되어 있습니다. 다른 구독이나 tenant에서 실행하려면 Bicep parameter뿐 아니라 [Fabric 운영 코드](fabric/run.py), [API server URL](api/main.py), PowerShell 스크립트의 대상도 검토해야 합니다. 범용 원클릭 배포 템플릿으로 사용하지 않습니다.
 
+`GENIUS_*` 환경변수와 `genius_recommendations` Delta 테이블 이름은 기존 환경의 연동 식별자입니다. 소스 패키지 이름인 `azdemy_recommendations`와 구분하며, 대상 환경을 바꿀 때 저장 경로와 함께 검토합니다.
+
 1. [승인 범위와 보안 조건](docs/requirements.md)을 확인하고 대상 구독·전용 RG·기존 capacity를 점검합니다.
 2. [인프라 가이드](infra/README.md)에 따라 SSH 공개키와 parameter를 준비하고 Bicep 빌드·검사·what-if를 수행합니다.
 3. 명시적인 승인 뒤 기본 Azure 인프라를 배포하고, Bastion·SOCKS와 Private DNS·외부 차단을 확인합니다.
@@ -414,7 +414,7 @@ Spark Job Definition을 필요한 인자 없이 직접 실행하지 않습니다
 
 게시 성공은 파일 전송이나 앱 재시작만으로 판단하지 않습니다. 서버의 해당 request ID receipt가 `completed`인지 확인해야 하며 위 스크립트가 이 확인까지 수행합니다. rollback도 [별도 게시 절차](fabric/README.md#게시와-실패-처리)를 따릅니다.
 
-2026-10-22에 확인한 Agent 버전은 `education-consultant:6`입니다. 새로 게시했다면 반환된 실제 버전을 사용합니다.
+아래 예시는 `education-consultant:6`을 호출합니다. 새로 게시했다면 반환된 버전 번호를 사용합니다.
 
 ```powershell
 .\agent\invoke.ps1 -AgentVersion 6 -Message '내 추천 교육과 추천 이유를 알려줘.' -OutputFile "$env:TEMP\azdemy-response.json"
@@ -437,42 +437,27 @@ snapshot이 만료됐거나 Private 접속이 끊긴 상태에서는 정상 상�
 | REC-01~05 | 본인 매핑, 원본 순위·이유, 수강 제외 규칙, cold-start 정책 |
 | AGT-01~06 | 도구 계약, 과정 사실·근거, 추천 이유 보존, 권한·오류 상태 |
 | DAT-02 | ID·참조·카테고리·직무·선수 과정 무결성 |
-| MOD-01·05 | 모델·입력·코드 provenance와 배치 계약. 실제 학습은 Fabric 실행 기록으로 별도 확인 |
+| MOD-01·05 | 모델·입력·코드 provenance와 배치 계약. Spark 학습은 Fabric 환경에서 별도 확인 |
 | PIP-01~05 | 배치 재실행, export 무결성, release 활성화·rollback·유효 기간 |
 | SEC-05·06 | JWT·권한·호출 주체 검사, keyless Agent 도구 정의 |
 
 로컬 검사는 Spark·MLflow의 실제 실행, 네트워크 격리나 전체 국내 처리·저장 준수를 증명하지 않습니다.
 
-### 실제 연동 검증 기록
+### 데모 시나리오
 
-#### 2026-10-22 Azdemy 재배포
+Azure·Fabric 환경에서는 추천 생성부터 게시와 상담까지의 흐름을 확인합니다. API 응답과 상담 내용은 같은 버전의 추천 결과·교육 카탈로그를 기준으로 대조합니다.
 
-| 항목 | 확인한 결과 |
+| 시나리오 | 확인 범위 |
 |---|---|
-| API 배포 | SCM `4d080331-8d58-4d1b-b0cf-e4699e2564d2`, `status=4`, complete·active 확인 |
-| 배포 소스 | 서버의 API·공유 패키지 Python 12개 파일이 로컬 SHA-256과 일치 |
-| 상담 | `education-consultant:6`, Azdemy 지시문·API 스키마·Managed Identity 도구 확인 |
-| Native Spark Pipeline | Run `4bf533b7-6664-476b-bbed-3479edfb2057` Completed, 검증된 추천 6건 |
-| 게시 버전 | `fabric-4bf533b7-6664-476b-bbed-3479edfb2057`, 수동 게시 완료 receipt 확인 |
-| 생성·만료 UTC | `2026-10-22T06:42:21.591857Z` / `2026-10-24T06:42:21.591857Z` |
-| 실제 상담 원본 대조 | 추천 순위·이유 원문·근거·의무교육 분리, 과정 비교, 영어 검색·마감 조건, 타 학습자 거절, 검색 0건 통과 |
-| 접근 경계 | Private API의 토큰 없음·잘못된 토큰은 401, 외부 API는 403. 같은 인증으로 Fabric items 조회는 Private 200·외부 `RequestDeniedByInboundPolicy` 403 |
-| 로컬 검사 | 테스트 73개·Python 컴파일 통과. 실제 export 재생으로 cold-start와 만료 시계의 `STALE_DATA` 확인 |
-| 실행 자원 정리 | F4 Paused 뒤 실제 상담 원본 대조 통과. 이후 Jump host Deallocated와 이번 검증용 터널 포트 종료 확인 |
+| 개인화 추천 | 원본 순위·추천 이유·근거 인용, 의무교육 분리 |
+| 과정 탐색과 비교 | 과정별 수준·시간·선수 조건·언어·자막, 누락 정보의 확인 불가 안내 |
+| 수강 조건 | 수료·마감·폐강·직무 자격·선수 과정에 따른 제외 |
+| 권한과 오류 | 다른 학습자 조회 거절, 검색 0건 안내, 인증 검사와 외부 접근 차단 |
+| 배치와 게시 | Native Spark 실행, export 검증, 버전별 게시와 Fabric 중지 후 조회 |
 
-기존 승인 모델 버전 1을 재사용했으며 모델 재학습·새 자원·권한 확대는 하지 않았습니다. 카탈로그 변경은 안내 문구뿐이고 과정 사실과 모델 입력 특성은 이전 export와 같습니다. Cold-start 학습자 B와 만료 시계 검사는 실제 export를 로컬에서 재생한 결과이며, 실제 상담 identity나 서버 시계를 바꾼 시험은 아닙니다.
+Cold-start·만료·강제 장애·다른 호출 주체의 JWT 거절은 로컬 회귀 검사와 export 재생으로 확인합니다. 이를 모든 오류를 실제 서비스에 주입한 시험으로 해석하면 안 됩니다. Playground의 브라우저 전체 흐름, 최종 사용자 OBO와 실제 직원 대상 추천 품질은 검증 범위에 포함하지 않습니다.
 
-Fabric 정책 관리 endpoint 조회는 403으로 거절됐습니다. 정책을 변경하지 않고 같은 items 요청의 Private·외부 응답으로 접근 경계를 확인했습니다. 추가 Foundry 자동 생성 평가 suite는 만들지 않았으며, Playground 브라우저 흐름·실제 추천 품질·전체 국내 처리 준수는 미검증입니다.
-
-#### 2026-10-20~21 기록
-
-2026-10-21 기록에는 Spark 학습·MLflow 모델 등록, Delta 저장, 동일 batch key 재실행의 중복·결과 불변, Private 게시와 checksum 손상 거절, rollback·재활성화, 앱 재시작 후 JSON 보존이 포함되어 있습니다. Fabric capacity를 중지한 뒤에도 게시 원본과 API·상담 결과가 일치하는지 확인했습니다.
-
-이후 native Spark Pipeline 실행은 Pipeline `Completed`와 activity `Succeeded`, 새 export까지 확인했습니다. 이 실행 결과는 자동으로 API에 게시하지 않았습니다.
-
-당시 API 게시 버전은 `fabric-0672c7fa738b44538e04`이며 실제 생성·만료 시각은 `2026-10-21T02:25:03.487255Z` / `2026-10-23T02:25:03.487255Z`입니다. 지금도 유효하거나 같은 버전이 활성 상태라고 가정하지 않습니다.
-
-실행 ID와 상세 결과는 [Fabric 검증 기록](fabric/README.md#2026-10-21-실제-실행-증거), [API 검증 기록](docs/demo-api.md#검증-범위), [인프라 검증 기록](infra/README.md#2026-10-20-배포검증-결과)에 있습니다. Cold-start·stale·강제 시스템 장애와 다른 호출 주체의 JWT 거절은 로컬 테스트 근거이며, 모든 시나리오를 실제 Azure에 주입한 것은 아닙니다.
+환경별 실행·확인 방법은 [Fabric 가이드](fabric/README.md), [API·상담 가이드](docs/demo-api.md), [Private 인프라 가이드](infra/README.md)를 참고하세요.
 
 ## 현재 제한과 후속 과제
 
@@ -492,11 +477,11 @@ Azure Machine Learning, 실시간 재학습·개인화, 수강 신청·취소, H
 
 ## 운영과 정리
 
-Fabric F4와 Jump host의 실행 상태는 별도로 확인해야 합니다. 기존 기록의 `Paused`·`Deallocated` 상태가 이후 UI 확인이나 수동 실행에도 계속 유지된다고 가정하지 않습니다.
+시연 전후에는 Fabric capacity와 Jump host의 실행 상태를 확인합니다. 시연이 끝나면 [Fabric 운영 절차](fabric/README.md)에 따라 작업을 위해 재개한 자원을 중지합니다.
 
-승인된 실행을 마치면 [Fabric 운영 절차](fabric/README.md)에 따라 이번 실행이 재개한 자원을 원래 상태로 복구합니다. F4 중지나 VM 할당 해제만으로 App Service·Bastion·Private Endpoint·디스크·저장소 등의 요금이 모두 중단되지는 않습니다. 실제 청구액과 유지 시간을 별도로 확인해야 합니다.
+Fabric capacity 중지나 VM 할당 해제만으로 App Service·Bastion·Private Endpoint·디스크·저장소 등의 요금이 모두 중단되지는 않습니다. 유지할 자원과 비용을 별도로 확인해야 합니다.
 
-`expiresOn=2026-10-22`는 정리 검토 태그이며 자동 삭제 예약이 아닙니다. 프로젝트 전용 RG의 삭제는 자원 inventory와 종속성을 확인한 뒤 명시적인 승인 아래 수행합니다. 기존 공용 Fabric capacity와 중앙 로그 자원은 프로젝트 정리 대상으로 임의 삭제하지 않습니다. 전용 Entra 앱, Foundry가 생성한 identity, Fabric Workspace Identity·connection 등 RG 밖의 항목도 정리 범위를 별도로 확인합니다.
+`expiresOn` 태그는 정리 검토 시점을 나타내며 자동 삭제 예약이 아닙니다. 프로젝트 전용 RG를 삭제할 때는 자원 목록과 종속성을 먼저 확인하고, 공용 Fabric capacity와 중앙 로그 자원을 정리 대상에서 구분합니다. Entra 앱과 Fabric Workspace Identity·connection 등 RG 밖의 항목도 별도로 점검합니다.
 
 토큰·client secret·connection string·SSH 개인키·실제 직원 데이터를 저장소에 기록하지 않습니다. 배포 parameter, 실행 state와 응답 검증 자료는 저장소 밖에서 관리합니다.
 
@@ -506,7 +491,7 @@ Fabric F4와 Jump host의 실행 상태는 별도로 확인해야 합니다. 기
 |---|---|
 | [요구사항 정의서](docs/requirements.md) | REC·AGT·DAT·MOD·PIP·SEC 요구사항과 승인된 데모 예외 |
 | [Private 인프라 가이드](infra/README.md) | Bicep 배포, Bastion·SOCKS, Private DNS·접근 차단, 비용·정리 |
-| [Fabric 가이드](fabric/README.md) | 학습, 수동 Spark Pipeline, Delta·export, 게시·rollback, 실행 증거 |
+| [Fabric 가이드](fabric/README.md) | 학습, 수동 Spark Pipeline, Delta·export, 게시·rollback |
 | [API·상담 가이드](docs/demo-api.md) | 인증 경계, API 계약, 패키징·게시, 상담 호출과 검증 한계 |
 | [합성 데이터 가이드](data/README.md) | 카탈로그 필드, 합성 작성 범위, 수강 조건과 테스트 시나리오 |
 | [서드파티 고지](infra/THIRD-PARTY-NOTICES) | Foundry 인프라 예제의 출처·라이선스 |
