@@ -1,0 +1,11 @@
+{
+  "data_version": "synthetic-policy-2026-10-21.1",
+  "catalog_version": "2026-10-20.1",
+  "is_synthetic": true,
+  "cold_start_by_role": {
+    "software_engineer": ["SYN-DEV-001", "SYN-DEV-004", "SYN-PRD-003"]
+  },
+  "mandatory_reasons": {
+    "SYN-SEC-001": "전 직무 대상 합성 정보 보호 의무교육입니다. 실제 회사의 의무교육 정책이 아닙니다."
+  }
+}

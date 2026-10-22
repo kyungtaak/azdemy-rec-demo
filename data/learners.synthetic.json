@@ -1,0 +1,18 @@
+{
+  "data_version": "2026-10-20.1",
+  "is_synthetic": true,
+  "learners": [
+    {
+      "id": "learner-a",
+      "role": "software_engineer",
+      "history_state": "sufficient",
+      "completed_course_ids": ["SYN-DEV-001", "SYN-DAT-001", "SYN-CLD-001"]
+    },
+    {
+      "id": "learner-b",
+      "role": "software_engineer",
+      "history_state": "insufficient",
+      "completed_course_ids": []
+    }
+  ]
+}

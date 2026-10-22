@@ -1,0 +1,13 @@
+infra/main.json
+infra/*.parameters.json
+*.pem
+*.key
+.azure/
+__pycache__/
+.venv/
+
+# Locally installed third-party agent tooling is not part of the demo distribution.
+.github/skills/
+
+# Local pre-rename draft screenshot; published documentation uses Markdown sources.
+docs/image.png

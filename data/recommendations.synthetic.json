@@ -1,0 +1,33 @@
+{
+  "data_version": "2026-10-20.1",
+  "catalog_version": "2026-10-20.1",
+  "generated_at": "2026-10-20T12:00:00Z",
+  "valid_until": "2026-10-22T12:00:00Z",
+  "is_synthetic": true,
+  "generation": "mock-fabric-static-snapshot",
+  "personalized": {
+    "learner-a": [
+      {"course_id": "SYN-DEV-002", "rank": 1, "reason": "합성 개발자 A는 Python 기초를 수료했습니다. 다음 단계의 조회 API 설계 역량을 학습하도록 준비한 데모 추천입니다."},
+      {"course_id": "SYN-DEV-001", "rank": 2, "reason": "Python 업무 자동화 역량과 연결된 합성 추천 후보입니다. 수료 여부는 API가 별도로 검사합니다."},
+      {"course_id": "SYN-DEV-005", "rank": 3, "reason": "조회 성능 분석 역량과 연결된 합성 추천 후보입니다. 모집 마감 여부는 API가 별도로 검사합니다."},
+      {"course_id": "SYN-CLD-005", "rank": 4, "reason": "네트워크 복구 역량과 연결된 합성 후보입니다. 폐강과 자격 조건은 API가 별도로 검사합니다."},
+      {"course_id": "SYN-LDR-002", "rank": 5, "reason": "피드백 역량과 연결된 합성 후보입니다. 관리자 수강 자격은 API가 별도로 검사합니다."},
+      {"course_id": "SYN-SEC-005", "rank": 6, "reason": "AI 도구 권한 경계와 연결된 합성 후보입니다. 필수 선수 과정 수료는 API가 별도로 검사합니다."},
+      {"course_id": "SYN-DAT-003", "rank": 7, "reason": "합성 개발자 A는 SQL 기초를 수료했습니다. 추천 결과 평가와 cold-start 구분을 학습하도록 준비한 데모 추천입니다."},
+      {"course_id": "SYN-DAT-004", "rank": 8, "reason": "교육 상담의 출처 확인과 근거 부족 처리 역량을 학습하도록 준비한 합성 추천입니다."},
+      {"course_id": "SYN-LDR-005", "rank": 9, "reason": "학습 계획 수립과 연결된 합성 후보입니다. 모집 시작일과 자격 조건은 API가 별도로 검사합니다."},
+      {"course_id": "SYN-SEC-001", "rank": 10, "reason": "전 직무 대상 합성 의무교육입니다. 일반 추천과 분리해 표시합니다."}
+    ]
+  },
+  "cold_start_by_role": {
+    "software_engineer": [
+      {"course_id": "SYN-DEV-001", "rank": 1, "reason": "학습 이력이 부족한 합성 개발자를 위한 직무별 기초 정책 추천입니다. 개인화 모델의 추론 결과가 아닙니다."},
+      {"course_id": "SYN-DEV-004", "rank": 2, "reason": "신규 개발자의 협업 기초 학습을 위한 합성 cold-start 정책 추천입니다."},
+      {"course_id": "SYN-PRD-003", "rank": 3, "reason": "학습 이력이 부족한 사용자의 검증 근거 작성 역량을 위한 합성 정책 추천입니다."},
+      {"course_id": "SYN-SEC-001", "rank": 4, "reason": "전 직무 대상 합성 의무교육입니다. 일반 추천과 분리해 표시합니다."}
+    ]
+  },
+  "mandatory_reasons": {
+    "SYN-SEC-001": "전 직무 대상 합성 정보 보호 의무교육입니다. 실제 회사의 의무교육 정책이 아닙니다."
+  }
+}
