@@ -2,7 +2,7 @@ param location string
 param tags object
 
 resource natIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
-  name: 'pip-genius-nat'
+  name: 'pip-azdemy-nat'
   location: location
   tags: tags
   sku: { name: 'Standard' }
@@ -10,7 +10,7 @@ resource natIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
 }
 
 resource nat 'Microsoft.Network/natGateways@2024-05-01' = {
-  name: 'nat-genius'
+  name: 'nat-azdemy'
   location: location
   tags: tags
   sku: { name: 'Standard' }
@@ -21,7 +21,7 @@ resource nat 'Microsoft.Network/natGateways@2024-05-01' = {
 }
 
 resource jumpNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
-  name: 'nsg-genius-jump'
+  name: 'nsg-azdemy-jump'
   location: location
   tags: tags
   properties: {
@@ -57,7 +57,7 @@ resource jumpNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
 }
 
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
-  name: 'vnet-genius-krc'
+  name: 'vnet-azdemy-krc'
   location: location
   tags: tags
   properties: {
@@ -103,7 +103,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
 }
 
 resource bastionIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
-  name: 'pip-genius-bastion'
+  name: 'pip-azdemy-bastion'
   location: location
   tags: tags
   sku: { name: 'Standard' }
@@ -111,7 +111,7 @@ resource bastionIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
 }
 
 resource bastion 'Microsoft.Network/bastionHosts@2024-05-01' = {
-  name: 'bas-genius-krc'
+  name: 'bas-azdemy-krc'
   location: location
   tags: tags
   sku: { name: 'Standard' }

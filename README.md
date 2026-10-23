@@ -359,16 +359,16 @@ python -m venv .venv
 아래 placeholder를 실제 허용된 tenant·API 앱·호출 주체의 UUID로 바꿉니다. 환경변수는 현재 PowerShell 프로세스에만 적용되며 토큰이나 client secret을 입력하는 항목이 아닙니다.
 
 ```powershell
-$env:GENIUS_TENANT_ID = '<tenant-id>'
-$env:GENIUS_API_CLIENT_ID = '<api-application-client-id>'
-$env:GENIUS_PRINCIPAL_LEARNERS = '{"<allowed-principal-object-id>":"learner-a"}'
+$env:AZDEMY_TENANT_ID = '<tenant-id>'
+$env:AZDEMY_API_CLIENT_ID = '<api-application-client-id>'
+$env:AZDEMY_PRINCIPAL_LEARNERS = '{"<allowed-principal-object-id>":"learner-a"}'
 
 .\.venv\Scripts\python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
 ```
 
 실제 조회에는 해당 audience·role 또는 scope를 가진 Entra 액세스 토큰과 허용된 호출 주체 매핑이 모두 필요합니다. 인증을 생략하는 실행 모드는 없습니다. Swagger UI와 공개 OpenAPI 문서 endpoint도 비활성화되어 있으며, Agent 도구용 스키마는 코드에서 생성합니다.
 
-`GENIUS_PUBLICATION_ROOT`를 지정하지 않으면 [정적 합성 데이터](data/)를 읽습니다. 지정하면 해당 디렉터리의 활성 release를 사용하며, 게시 데이터가 없거나 손상됐을 때 정적 fixture로 자동 대체하지 않습니다.
+`AZDEMY_PUBLICATION_ROOT`를 지정하지 않으면 [정적 합성 데이터](data/)를 읽습니다. 지정하면 해당 디렉터리의 활성 release를 사용하며, 게시 데이터가 없거나 손상됐을 때 정적 fixture로 자동 대체하지 않습니다.
 
 정적 fixture의 유효 기간은 `2026-10-20T12:00:00Z`부터 `2026-10-22T12:00:00Z`까지입니다. 실제 API는 현재 UTC 시각을 사용하므로 기간이 지난 뒤 추천 조회가 `STALE_DATA`로 끝나는 것은 의도한 동작입니다. 테스트 통과를 위해 fixture 날짜를 바꾸거나 실행 시 TTL을 자동 연장하지 않습니다.
 
@@ -376,9 +376,11 @@ $env:GENIUS_PRINCIPAL_LEARNERS = '{"<allowed-principal-object-id>":"learner-a"}'
 
 ### 배포 순서
 
-저장소에는 현재 데모 환경에 고정된 자원명·ID·hostname이 포함되어 있습니다. 다른 구독이나 tenant에서 실행하려면 Bicep parameter뿐 아니라 [Fabric 운영 코드](fabric/run.py), [API server URL](api/main.py), PowerShell 스크립트의 대상도 검토해야 합니다. 범용 원클릭 배포 템플릿으로 사용하지 않습니다.
+2026-10-22 기존 데모 RG `rg-genius-rec-demo-krc`를 삭제했습니다. 다음 배포의 RG는 `rg-azdemy-rec-demo-krc`이며 Bicep 자원명·태그도 `azdemy`를 사용합니다. 새 환경은 아직 배포하지 않았습니다. 이 문서의 기존 구성·검증 결과는 과거 실행 기록이며, 삭제한 API·Foundry·VNet에 현재 접속할 수 있다는 의미가 아닙니다.
 
-`GENIUS_*` 환경변수와 `genius_recommendations` Delta 테이블 이름은 기존 환경의 연동 식별자입니다. 소스 패키지 이름인 `azdemy_recommendations`와 구분하며, 대상 환경을 바꿀 때 저장 경로와 함께 검토합니다.
+운영 명령에는 [배포 출력값](infra/README.md#빌드와-배포)의 `$ApiName`, `$ApiUrl`, `$ProjectEndpoint`와 새 Agent 버전을 전달합니다. API 환경변수는 `AZDEMY_*`이며 기존 `GENIUS_*` 설정은 사용하지 않습니다. 공용 Fabric capacity와 기존 workspace·Delta 테이블 `genius_recommendations`·게시 저장 경로는 유지합니다.
+
+다른 구독이나 tenant에서 실행하려면 Bicep parameter뿐 아니라 [Fabric 운영 코드](fabric/run.py)의 고정 구독·capacity·RG와 권한도 검토해야 합니다. 범용 원클릭 배포 템플릿으로 사용하지 않습니다.
 
 1. [승인 범위와 보안 조건](docs/requirements.md)을 확인하고 대상 구독·전용 RG·기존 capacity를 점검합니다.
 2. [인프라 가이드](infra/README.md)에 따라 SSH 공개키와 parameter를 준비하고 Bicep 빌드·검사·what-if를 수행합니다.
@@ -409,16 +411,16 @@ Spark Job Definition을 필요한 인자 없이 직접 실행하지 않습니다
 게시 명령은 Private 터널과 실행 이력이 담긴 기존 state가 준비된 운영자용 절차입니다. `$State`는 저장소 밖의 실행 inventory JSON, `$Export`는 그 실행에서 검증한 export 디렉터리입니다. 새 Pipeline 실행 결과라면 먼저 해당 실행과 export를 확인해야 하며, 이전 state를 그대로 사용해 새 결과라고 게시하면 안 됩니다.
 
 ```powershell
-.\infra\publish-snapshot.ps1 -State $State -Export $Export
+.\infra\publish-snapshot.ps1 -State $State -Export $Export -ApiName $ApiName
 ```
 
 게시 성공은 파일 전송이나 앱 재시작만으로 판단하지 않습니다. 서버의 해당 request ID receipt가 `completed`인지 확인해야 하며 위 스크립트가 이 확인까지 수행합니다. rollback도 [별도 게시 절차](fabric/README.md#게시와-실패-처리)를 따릅니다.
 
-아래 예시는 `education-consultant:6`을 호출합니다. 새로 게시했다면 반환된 버전 번호를 사용합니다.
+아래 예시는 새 배포의 `$ProjectEndpoint`와 게시 응답의 `$AgentVersion`을 사용합니다.
 
 ```powershell
-.\agent\invoke.ps1 -AgentVersion 6 -Message '내 추천 교육과 추천 이유를 알려줘.' -OutputFile "$env:TEMP\azdemy-response.json"
-.\agent\invoke.ps1 -AgentVersion 6 -Message 'SYN-DEV-001과 SYN-DEV-002를 비교해줘.' -OutputFile "$env:TEMP\azdemy-comparison.json"
+.\agent\invoke.ps1 -ProjectEndpoint $ProjectEndpoint -AgentVersion $AgentVersion -Message '내 추천 교육과 추천 이유를 알려줘.' -OutputFile "$env:TEMP\azdemy-response.json"
+.\agent\invoke.ps1 -ProjectEndpoint $ProjectEndpoint -AgentVersion $AgentVersion -Message 'SYN-DEV-001과 SYN-DEV-002를 비교해줘.' -OutputFile "$env:TEMP\azdemy-comparison.json"
 ```
 
 snapshot이 만료됐거나 Private 접속이 끊긴 상태에서는 정상 상담을 기대하지 않습니다. 오류를 숨기지 않고 유효한 신규 배치와 접속 상태를 확인해야 합니다.

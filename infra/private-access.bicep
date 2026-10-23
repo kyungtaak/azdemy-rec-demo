@@ -28,7 +28,7 @@ resource dns 'Microsoft.Network/privateDnsZones@2024-06-01' = [for zone in zones
 
 resource links 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [for (zone, i) in zones: {
   parent: dns[i]
-  name: 'genius-vnet'
+  name: 'azdemy-vnet'
   location: 'global'
   properties: {
     registrationEnabled: false
@@ -46,7 +46,7 @@ var endpoints = [
 ]
 
 resource pe 'Microsoft.Network/privateEndpoints@2024-05-01' = [for endpoint in endpoints: {
-  name: 'pe-genius-${endpoint.name}'
+  name: 'pe-azdemy-${endpoint.name}'
   location: location
   tags: tags
   properties: {

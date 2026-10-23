@@ -1,8 +1,9 @@
 param(
     [Parameter(Mandatory)][string]$ApiClientId,
+    [Parameter(Mandatory)][string]$ApiUrl,
     [string]$Python = '.\.venv\Scripts\python.exe',
     [string]$AgentName = 'education-consultant',
-    [string]$ProjectEndpoint = 'https://geniusmda53gutai.services.ai.azure.com/api/projects/learning',
+    [Parameter(Mandatory)][string]$ProjectEndpoint,
     [string]$Proxy = 'socks5h://127.0.0.1:1080',
     [ValidateSet('az', 'azd')][string]$AuthCli = 'az'
 )
@@ -12,7 +13,7 @@ $requestFile = [System.IO.Path]::GetTempFileName()
 $responseFile = [System.IO.Path]::GetTempFileName()
 $token = $null
 try {
-    & $Python -m agent.build_definition --api-client-id $ApiClientId --output $requestFile
+    & $Python -m agent.build_definition --api-client-id $ApiClientId --api-url $ApiUrl --output $requestFile
     if ($LASTEXITCODE -ne 0) { throw 'Agent definition validation failed' }
     $token = if ($AuthCli -eq 'azd') {
         azd auth token --scope https://ai.azure.com/.default --no-prompt

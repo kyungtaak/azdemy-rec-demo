@@ -18,7 +18,6 @@ from api.publication import process_pending, read_active_store
 
 logger = logging.getLogger("azdemy.api")
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-API_URL = "https://geniusmda53gutapi.azurewebsites.net"
 
 
 def utc_now() -> datetime:
@@ -60,11 +59,11 @@ def check_query(request: Request):
         raise ServiceError(422, "INVALID_REQUEST", "허용되지 않거나 중복된 조회 parameter입니다.")
 
 
-def create_app(store: Store | None = None) -> FastAPI:
+def create_app(store: Store | None = None, *, api_url: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI):
         settings = get_auth_settings()
-        publication_path = os.environ.get("GENIUS_PUBLICATION_ROOT")
+        publication_path = os.environ.get("AZDEMY_PUBLICATION_ROOT")
         application.state.publication_root = Path(publication_path) if publication_path else None
         if application.state.publication_root is not None:
             process_pending(application.state.publication_root, utc_now())
@@ -78,7 +77,7 @@ def create_app(store: Store | None = None) -> FastAPI:
     application = FastAPI(
         title="Azdemy Read-only Education API", version="1.0.0",
         description="합성 교육 데이터만 조회합니다. 수강 신청이나 직원 정보 변경은 불가능합니다.",
-        servers=[{"url": API_URL}], lifespan=lifespan,
+        servers=[{"url": api_url}] if api_url else [], lifespan=lifespan,
         dependencies=[Depends(check_query)],
         responses={
             status: {"model": ErrorResponse, "description": code}

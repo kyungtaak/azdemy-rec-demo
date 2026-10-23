@@ -2,8 +2,8 @@ param(
     [Parameter(Mandatory)][string]$Message,
     [Parameter(Mandatory)][string]$OutputFile,
     [string]$AgentName = 'education-consultant',
-    [string]$AgentVersion = '6',
-    [string]$ProjectEndpoint = 'https://geniusmda53gutai.services.ai.azure.com/api/projects/learning',
+    [Parameter(Mandatory)][string]$AgentVersion,
+    [Parameter(Mandatory)][string]$ProjectEndpoint,
     [string]$Proxy = 'socks5h://127.0.0.1:1080',
     [switch]$Stream,
     [ValidateSet('az', 'azd')][string]$AuthCli = 'az'

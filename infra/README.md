@@ -5,10 +5,16 @@
 
 ## 범위
 
-현재 Azure CLI 구독의 신규 `rg-genius-rec-demo-krc`에 Korea Central 자원을
-생성합니다. Foundry Standard Setup, Agent subnet delegation과 private tools
+다음 배포 대상은 현재 Azure CLI 구독의 신규 `rg-azdemy-rec-demo-krc`입니다.
+Korea Central에 Foundry Standard Setup, Agent subnet delegation과 private tools
 network injection을 사용합니다. Search Basic과 Cosmos Serverless를 사용하며
 지원 실패 시 더 비싼 SKU나 key 인증으로 자동 전환하지 않습니다.
+
+2026-10-22 기존 `rg-genius-rec-demo-krc`의 삭제를 확인했습니다.
+다음 배포의 이름·태그는 `azdemy`를 사용하며, 아래 과거 배포·검증 기록의
+`genius` 이름은 당시 실제 값으로 보존합니다. 새 자원을 배포한 기록은 아닙니다.
+공용 Fabric capacity·기존 workspace·중앙 로그·Entra 앱은 삭제 대상에서 제외했고,
+Foundry·Key Vault의 soft-delete 항목은 purge하지 않았습니다.
 
 최초 인프라 배포는 API 실행 환경까지만 생성했습니다. 이후 Entra API 앱,
 FastAPI 조회 코드와 Prompt Agent·OpenAPI 연결을 추가했습니다.
@@ -56,15 +62,37 @@ python .\infra\tests\validate_template.py "$env:TEMP\azdemy-infra-compiled.json"
 ```
 
 배포 parameter JSON은 저장소 밖에 보관합니다. `sshPublicKey`는 전용 로컬
-공개키, `operatorObjectId`는 로그인 사용자의 Entra object ID,
-`expiresOn`은 검토일 `2026-10-22`입니다. 개인키를 parameter로 전달하지 않습니다.
+공개키, `operatorObjectId`는 로그인 사용자의 Entra object ID입니다.
+`expiresOn`은 새 실행에서 승인받은 정리 검토일로 지정합니다.
+개인키를 parameter로 전달하지 않습니다.
 구독 ID를 확인하고, 기존 동명 RG를 임의 재사용하지 않습니다.
 
 ```powershell
-az deployment group what-if --resource-group rg-genius-rec-demo-krc --template-file .\infra\main.bicep --parameters "@$ParameterFile"
-az deployment group create --resource-group rg-genius-rec-demo-krc --template-file .\infra\main.bicep --parameters "@$ParameterFile" --name genius-private-20261020
+az deployment group what-if --resource-group rg-azdemy-rec-demo-krc --template-file .\infra\main.bicep --parameters "@$ParameterFile"
+az deployment group create --resource-group rg-azdemy-rec-demo-krc --template-file .\infra\main.bicep --parameters "@$ParameterFile" --name azdemy-private
 .\infra\verify.ps1
 ```
+
+새 RG 생성과 실제 배포는 별도 승인이 필요합니다. 배포 후 `azdemy-private`의
+출력값에서 `apiName`, `apiHostname`, `projectEndpoint`를 읽어 운영 스크립트에
+전달합니다. 이름 접미사는 RG ID로 결정되므로 이전 API·Foundry hostname을
+다시 사용하거나 새 접미사를 추측하지 않습니다.
+
+```powershell
+$deployment = az deployment group show -g rg-azdemy-rec-demo-krc -n azdemy-private -o json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read deployment outputs' }
+$ApiName = $deployment.properties.outputs.apiName.value
+$ApiUrl = "https://$($deployment.properties.outputs.apiHostname.value)"
+$ProjectEndpoint = $deployment.properties.outputs.projectEndpoint.value
+```
+
+API 설정은 `AZDEMY_*` 환경변수를 사용합니다. 기존 `GENIUS_*` 설정을 읽는
+호환 모드는 없으므로 코드와 [api-config.bicep](api-config.bicep)을 함께 배포합니다.
+새 Entra 앱 표시명은 `azdemy-rec-demo-api`이며, 기존 앱을 자동 삭제하거나
+이름이 다른 앱의 권한을 새 앱으로 복사하지 않습니다.
+기존 Fabric workspace·Delta 테이블·게시 저장 경로는 이번 변경에 포함하지 않습니다.
+[fabric-private.bicep](fabric-private.bicep)을 사용할 때도 새 검토일을 담은 `tags`를
+명시적으로 전달합니다. 기본 태그의 날짜는 최초 데모 검토일이며 자동 예약이 아닙니다.
 
 what-if는 정책 remediation이나 플랫폼 내부 생성 자원의 전체 비용을
 보장하지 않습니다. 실패 시 먼저 deployment operation의 원인을 확인합니다.
@@ -76,8 +104,8 @@ capability host가 subnet에 service link를 남겼다면 임의 삭제·purge�
 첫 PowerShell 창에서 native tunnel을 실행하고 유지합니다.
 
 ```powershell
-$vmId = az vm show -g rg-genius-rec-demo-krc -n vm-genius-jump --query id -o tsv
-az network bastion tunnel -g rg-genius-rec-demo-krc -n bas-genius-krc --target-resource-id $vmId --resource-port 22 --port 50022
+$vmId = az vm show -g rg-azdemy-rec-demo-krc -n vm-azdemy-jump --query id -o tsv
+az network bastion tunnel -g rg-azdemy-rec-demo-krc -n bas-azdemy-krc --target-resource-id $vmId --resource-port 22 --port 50022
 ```
 
 VM Run Command 등 신뢰할 수 있는 management-plane 경로에서 SSH host key
@@ -85,7 +113,7 @@ fingerprint를 확인한 뒤, 두 번째 창에서 연결합니다. 개인키 �
 로컬 전용 키를 가리켜야 합니다. host key 검증을 끄지 않습니다.
 
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\genius-rec-demo" -p 50022 -N -D 127.0.0.1:1080 -o "UserKnownHostsFile=$env:USERPROFILE\.ssh\genius-rec-demo-known-hosts" -o KexAlgorithms=curve25519-sha256 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 demoadmin@127.0.0.1
+ssh -i "$env:USERPROFILE\.ssh\azdemy-rec-demo" -p 50022 -N -D 127.0.0.1:1080 -o "UserKnownHostsFile=$env:USERPROFILE\.ssh\azdemy-rec-demo-known-hosts" -o KexAlgorithms=curve25519-sha256 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 demoadmin@127.0.0.1
 ```
 
 SOCKS5 프록시는 `127.0.0.1:1080`입니다. 브라우저에서 프록시 쪽 DNS 해석도
@@ -118,7 +146,7 @@ VM 정지만으로 Bastion·Search·App Service plan·PE·NAT·IP·디스크 요
 2. 프로젝트 capability host·account에 종속된 network service link의 상태를 확인합니다.
 3. 명시적인 삭제 승인 후 전용 RG만 삭제합니다. 중앙 로그 RG나 다른 프로젝트는 제외합니다.
 4. RG 삭제 완료와 남은 자원을 확인합니다. Soft-deleted Foundry/Key Vault의 purge는 별도 판단하며 임의 수행하지 않습니다.
-5. RG 밖의 전용 Entra 앱 `genius-rec-demo-api`와 Foundry가 생성한 Agent Identity·blueprint의 정리 범위를 확인합니다. 앱 삭제는 별도 승인이 필요하며 중앙·공용 앱은 삭제하지 않습니다.
+5. RG 밖의 전용 Entra 앱 `azdemy-rec-demo-api`와 Foundry가 생성한 Agent Identity·blueprint의 정리 범위를 확인합니다. 앱 삭제는 별도 승인이 필요하며 중앙·공용 앱은 삭제하지 않습니다. 이전 배포의 `genius-rec-demo-api`도 별도 확인 대상입니다.
 
 ## 수용 검증
 

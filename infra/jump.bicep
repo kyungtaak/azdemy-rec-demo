@@ -6,7 +6,7 @@ param adminUsername string = 'demoadmin'
 param sshPublicKey string
 
 resource nic 'Microsoft.Network/networkInterfaces@2024-05-01' = {
-  name: 'nic-genius-jump'
+  name: 'nic-azdemy-jump'
   location: location
   tags: tags
   properties: {
@@ -21,7 +21,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2024-05-01' = {
 }
 
 resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
-  name: 'vm-genius-jump'
+  name: 'vm-azdemy-jump'
   location: location
   tags: tags
   properties: {
@@ -34,7 +34,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
         version: 'latest'
       }
       osDisk: {
-        name: 'disk-genius-jump'
+        name: 'disk-azdemy-jump'
         createOption: 'FromImage'
         diskSizeGB: 128
         managedDisk: { storageAccountType: 'StandardSSD_LRS' }
@@ -42,7 +42,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
       }
     }
     osProfile: {
-      computerName: 'genius-jump'
+      computerName: 'azdemy-jump'
       adminUsername: adminUsername
       linuxConfiguration: {
         disablePasswordAuthentication: true

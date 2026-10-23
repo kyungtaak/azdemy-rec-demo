@@ -12,11 +12,11 @@ resource settings 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: api
   name: 'appsettings'
   properties: {
-    GENIUS_TENANT_ID: tenantId
-    GENIUS_API_CLIENT_ID: apiClientId
-    GENIUS_PRINCIPAL_LEARNERS: string(principalLearners)
+    AZDEMY_TENANT_ID: tenantId
+    AZDEMY_API_CLIENT_ID: apiClientId
+    AZDEMY_PRINCIPAL_LEARNERS: string(principalLearners)
     SCM_DO_BUILD_DURING_DEPLOYMENT: 'false'
-    GENIUS_PUBLICATION_ROOT: publicationRoot
+    AZDEMY_PUBLICATION_ROOT: publicationRoot
   }
 }
 

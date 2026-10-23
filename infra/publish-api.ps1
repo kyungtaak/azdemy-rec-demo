@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory)][string]$Package,
-    [string]$ApiName = 'geniusmda53gutapi',
+    [Parameter(Mandatory)][string]$ApiName,
     [string]$Proxy = 'socks5h://127.0.0.1:1080',
     [ValidateSet('az', 'azd')][string]$AuthCli = 'az'
 )

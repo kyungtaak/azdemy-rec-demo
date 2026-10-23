@@ -1,16 +1,56 @@
 import unittest
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from fabric.cloud import request, workspace_endpoints
+from fabric.cloud import api_name, request, workspace_endpoints
 from api.publication import write_manifest
 from fabric.run import ROOT, confirm_publication, main, publish, put_file, stop_compute, wait_operation
 
 
 class OperatorClientTests(unittest.TestCase):
+    def setUp(self):
+        environment = patch.dict(os.environ, {"AZDEMY_API_NAME": "azdemy-test-api"})
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def test_only_configured_scm_host_is_approved(self):
+        with patch("fabric.cloud.token") as credential:
+            for host in ("other-api.scm.azurewebsites.net",
+                         "azdemy-test-api.scm.azurewebsites.net.attacker.invalid"):
+                with self.subTest(host=host), self.assertRaises(ValueError):
+                    request("GET", f"https://{host}/data", "https://management.azure.com")
+            credential.assert_not_called()
+
+    def test_api_name_is_required_and_cannot_inject_a_host_or_path(self):
+        for value in ("", "a", "https://example.org", "app/other", "-app", "app-",
+                      "a" * 61, "app.scm.azurewebsites.net"):
+            with self.subTest(value=value), patch.dict(
+                os.environ, {"AZDEMY_API_NAME": value}
+            ), self.assertRaises(ValueError):
+                api_name()
+        with patch.dict(os.environ, {}, clear=True), self.assertRaises(ValueError):
+            api_name()
+
+    def test_configured_scm_host_is_used_without_broadening_allowlist(self):
+        def execute(command, **kwargs):
+            self.assertIn("https://azdemy-test-api.scm.azurewebsites.net/data", command)
+            Path(command[command.index("--output") + 1]).write_bytes(b"{}")
+            Path(command[command.index("--dump-header") + 1]).write_text(
+                "HTTP/1.1 200 OK\n", encoding="utf-8")
+            return SimpleNamespace(stdout="200")
+
+        with patch("fabric.cloud.token", return_value="test-token"), patch(
+            "fabric.cloud.subprocess.run", side_effect=execute
+        ):
+            status, _, _ = request(
+                "GET", "https://azdemy-test-api.scm.azurewebsites.net/data",
+                "https://management.azure.com")
+            self.assertEqual(status, 200)
+
     def test_head_uses_curl_no_body_mode(self):
         def execute(command, **kwargs):
             self.assertIn("--head", command)
@@ -75,16 +115,28 @@ class OperatorClientTests(unittest.TestCase):
 
     def test_bootstrap_dispatches_explicit_legacy_migration(self):
         def server(method, url, *args, **kwargs):
+            self.assertTrue(url.startswith("https://azdemy-new-api.scm.azurewebsites.net/"))
             name = url.rsplit("/", 1)[-1]
             return 200, {}, (ROOT / "data" / name).read_bytes()
 
         with TemporaryDirectory() as directory:
             state = Path(directory) / "state.json"
             state.write_text(json.dumps({"workspace_id": "workspace"}), encoding="utf-8")
-            with patch("sys.argv", ["fabric.run", "bootstrap", "--state", str(state)]), patch(
+            with patch("sys.argv", [
+                "fabric.run", "bootstrap", "--state", str(state), "--api-name", "azdemy-new-api"
+            ]), patch(
                 "fabric.run.request", side_effect=server), patch("fabric.run.publish") as publisher:
                 main()
             self.assertTrue(publisher.call_args.kwargs["bootstrap"])
+
+    def test_cli_publication_rejects_missing_api_before_network_requests(self):
+        with TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True), patch(
+            "sys.argv", ["fabric.run", "publish", "--state", str(Path(directory) / "state.json")]
+        ), patch("fabric.run.request") as network, self.assertRaisesRegex(
+            ValueError, "AZDEMY_API_NAME"
+        ):
+            main()
+        network.assert_not_called()
 
     def test_capacity_pause_keeps_jump_host_for_independent_api_verification(self):
         state = {"owned_capacity": True, "owned_vm": True}
@@ -100,13 +152,18 @@ class OperatorClientTests(unittest.TestCase):
         pending = {}
 
         def server(method, url, audience, body=None, *args, **kwargs):
+            if ".scm.azurewebsites.net" in url:
+                self.assertTrue(url.startswith("https://azdemy-test-api.scm.azurewebsites.net/"))
+            if "/providers/Microsoft.Web/sites/" in url:
+                self.assertIn("/resourceGroups/rg-azdemy-rec-demo-krc/", url)
+                self.assertIn("/sites/azdemy-test-api/", url)
             if url.endswith("/active.json"):
                 return 404, {}, b""
             if url.endswith("/pending.json"):
                 pending.update(json.loads(body))
             if "/appsettings/list?" in url:
                 return 200, {}, json.dumps({"properties": {
-                    "GENIUS_PUBLICATION_ROOT": "/home/data/genius-recommendations"}}).encode()
+                    "AZDEMY_PUBLICATION_ROOT": "/home/data/genius-recommendations"}}).encode()
             self.assertNotIn("/restart?", url)
             if "/requests/" in url:
                 return 200, {}, json.dumps({

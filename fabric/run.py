@@ -15,7 +15,7 @@ from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from api.publication import atomic_json, safe_name, validate_directory, write_manifest
-from fabric.cloud import configure_auth_cli, json_request, request, workspace_endpoints
+from fabric.cloud import api_name, configure_auth_cli, json_request, request, workspace_endpoints
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,8 +23,12 @@ CAPACITY_ID = "28e18dcd-7720-4325-8190-c51cda278a81"
 ARM = "https://management.azure.com"
 STORAGE = "https://storage.azure.com/"
 SUBSCRIPTION = "b214e225-c96c-489e-a778-a1f25bd40cdb"
-APP_RESOURCE = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-genius-rec-demo-krc"
-                "/providers/Microsoft.Web/sites/geniusmda53gutapi")
+RESOURCE_GROUP = "rg-azdemy-rec-demo-krc"
+
+
+def app_resource() -> str:
+    return (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
+            f"/providers/Microsoft.Web/sites/{api_name()}")
 
 
 def save(path: Path, value: dict) -> None:
@@ -63,8 +67,8 @@ def start_compute(state: dict, path: Path, session_window: bool = False) -> None
             ("compute_started_at", "deadline", "compute_stopped_at", "execution_scope")})
     capacity_url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-poc-fabric"
                     "/providers/Microsoft.Fabric/capacities/pocfabcap01")
-    vm_url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-genius-rec-demo-krc"
-              "/providers/Microsoft.Compute/virtualMachines/vm-genius-jump")
+    vm_url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
+              "/providers/Microsoft.Compute/virtualMachines/vm-azdemy-jump")
     _, _, payload = request("GET", capacity_url + "?api-version=2023-11-01", ARM)
     capacity = json.loads(payload)
     _, _, payload = request("GET", vm_url + "/instanceView?api-version=2024-07-01", ARM)
@@ -93,8 +97,8 @@ def stop_compute(state: dict, path: Path, capacity_only: bool = False) -> None:
     for owned, url in [
         ("owned_capacity", f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-poc-fabric"
          "/providers/Microsoft.Fabric/capacities/pocfabcap01/suspend?api-version=2023-11-01"),
-        ("owned_vm", f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-genius-rec-demo-krc"
-         "/providers/Microsoft.Compute/virtualMachines/vm-genius-jump/deallocate?api-version=2024-07-01"),
+        ("owned_vm", f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
+         "/providers/Microsoft.Compute/virtualMachines/vm-azdemy-jump/deallocate?api-version=2024-07-01"),
     ]:
         if capacity_only and owned == "owned_vm":
             continue
@@ -273,7 +277,7 @@ def publish(source: Path, state: dict, proxy: str, state_path: Path, bootstrap: 
         raise ValueError("The actual Fabric workflow cannot publish a mock release")
     if rollback:
         print(f"Explicit operator rollback: {store.snapshot.data_version}", flush=True)
-    scm = "https://geniusmda53gutapi.scm.azurewebsites.net"
+    scm = f"https://{api_name()}.scm.azurewebsites.net"
     remote = f"{scm}/api/vfs/data/genius-recommendations"
     status, _, data = request("GET", remote + "/active.json", ARM, proxy=proxy, allow_status=(404,))
     previous = json.loads(data)["version"] if status == 200 else None
@@ -291,12 +295,12 @@ def publish(source: Path, state: dict, proxy: str, state_path: Path, bootstrap: 
                "expected_current": previous, "incoming": request_id}
     request("PUT", remote + "/pending.json", ARM, json.dumps(pending).encode("utf-8"), proxy,
             headers={"If-Match": "*"})
-    _, _, settings_data = request("POST", APP_RESOURCE + "/config/appsettings/list?api-version=2023-12-01",
+    _, _, settings_data = request("POST", app_resource() + "/config/appsettings/list?api-version=2023-12-01",
                                    ARM, b"")
     settings = json.loads(settings_data)
-    if settings["properties"].get("GENIUS_PUBLICATION_ROOT") != "/home/data/genius-recommendations":
-        settings["properties"]["GENIUS_PUBLICATION_ROOT"] = "/home/data/genius-recommendations"
-        request("PUT", APP_RESOURCE + "/config/appsettings?api-version=2023-12-01",
+    if settings["properties"].get("AZDEMY_PUBLICATION_ROOT") != "/home/data/genius-recommendations":
+        settings["properties"]["AZDEMY_PUBLICATION_ROOT"] = "/home/data/genius-recommendations"
+        request("PUT", app_resource() + "/config/appsettings?api-version=2023-12-01",
                 ARM, json.dumps({"properties": settings["properties"]}).encode("utf-8"))
     state["pending_publication"] = {
         **pending, "result_key": "bootstrap_publication" if bootstrap else "publication"}
@@ -309,13 +313,13 @@ def publish(source: Path, state: dict, proxy: str, state_path: Path, bootstrap: 
 def confirm_publication(state: dict, proxy: str, state_path: Path) -> None:
     pending = state["pending_publication"]
     request_id = safe_name(pending["request_id"])
-    remote = ("https://geniusmda53gutapi.scm.azurewebsites.net"
+    remote = (f"https://{api_name()}.scm.azurewebsites.net"
               "/api/vfs/data/genius-recommendations")
     wake = subprocess.run([
         "curl.exe", "--proxy", proxy, "--silent", "--show-error",
         "--connect-timeout", "20", "--max-time", "90", "--output", os.devnull,
         "--write-out", "%{http_code}",
-        "https://geniusmda53gutapi.azurewebsites.net/recommendations/me",
+        f"https://{api_name()}.azurewebsites.net/recommendations/me",
     ], check=True, capture_output=True, text=True)
     print(f"Unauthenticated private API wake-up HTTP {wake.stdout.strip()}", flush=True)
     if wake.stdout.strip() not in {"401", "502", "503"}:
@@ -351,9 +355,14 @@ def main() -> None:
     parser.add_argument("--proxy", default="socks5h://127.0.0.1:1080")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--auth-cli", choices=["az", "azd"], default="az")
+    parser.add_argument("--api-name")
     parser.add_argument("--new-batch", action="store_true")
     parser.add_argument("--session-window", action="store_true")
     args = parser.parse_args()
+    if args.api_name is not None:
+        os.environ["AZDEMY_API_NAME"] = args.api_name
+    if args.stage in {"publish", "bootstrap", "rollback", "confirm"}:
+        api_name()
     configure_auth_cli(args.auth_cli)
     if args.new_batch and args.stage != "batch":
         raise ValueError("--new-batch is valid only for an actual batch execution")
@@ -430,14 +439,14 @@ def main() -> None:
             for name in ("courses.synthetic.json", "learners.synthetic.json",
                          "recommendations.synthetic.json"):
                 _, _, data = request("GET",
-                    "https://geniusmda53gutapi.scm.azurewebsites.net/api/vfs/site/wwwroot/data/" + name,
+                    f"https://{api_name()}.scm.azurewebsites.net/api/vfs/site/wwwroot/data/" + name,
                     ARM, proxy=args.proxy)
                 (source / name).write_bytes(data)
             write_manifest(source)
             publish(source, state, args.proxy, args.state, bootstrap=True)
     elif args.stage == "rollback":
         from tempfile import TemporaryDirectory
-        remote = ("https://geniusmda53gutapi.scm.azurewebsites.net/api/vfs"
+        remote = (f"https://{api_name()}.scm.azurewebsites.net/api/vfs"
                   "/data/genius-recommendations/")
         _, _, data = request("GET", remote + "active.json", ARM, proxy=args.proxy)
         previous = json.loads(data).get("previous")

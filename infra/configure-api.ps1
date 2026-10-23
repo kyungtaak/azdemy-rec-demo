@@ -1,6 +1,6 @@
 param(
-    [string]$ResourceGroup = 'rg-genius-rec-demo-krc',
-    [string]$ApiName = 'geniusmda53gutapi',
+    [string]$ResourceGroup = 'rg-azdemy-rec-demo-krc',
+    [Parameter(Mandatory)][string]$ApiName,
     [Parameter(Mandatory)][string]$ToolPrincipalId
 )
 
@@ -28,10 +28,10 @@ $api = Invoke-AzJson @('webapp', 'show', '-g', $ResourceGroup, '-n', $ApiName)
 if ($api.publicNetworkAccess -ne 'Disabled') { throw 'The API must remain Private' }
 $currentSettings = @(Invoke-AzJson @('webapp', 'config', 'appsettings', 'list',
     '-g', $ResourceGroup, '-n', $ApiName))
-$publicationSetting = @($currentSettings | Where-Object name -eq 'GENIUS_PUBLICATION_ROOT')
+$publicationSetting = @($currentSettings | Where-Object name -eq 'AZDEMY_PUBLICATION_ROOT')
 if ($publicationSetting.Count -gt 1) { throw 'Duplicate publication root settings' }
 $publicationRoot = if ($publicationSetting.Count -eq 1) { $publicationSetting[0].value } else { '' }
-$displayName = 'genius-rec-demo-api'
+$displayName = 'azdemy-rec-demo-api'
 $description = "Synthetic read-only education API for $($api.id)"
 $applications = @(Invoke-AzJson @('ad', 'app', 'list', '--display-name', $displayName))
 if ($applications.Count -gt 1) { throw 'Multiple Entra applications match; refusing to choose' }
@@ -96,7 +96,7 @@ try {
         publicationRoot = @{value = $publicationRoot}
     } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $parameterFile -Encoding utf8
     $deployment = Invoke-AzJson @('deployment', 'group', 'create', '-g', $ResourceGroup,
-        '-n', 'genius-api-config', '--template-file', "$PSScriptRoot\api-config.bicep",
+        '-n', 'azdemy-api-config', '--template-file', "$PSScriptRoot\api-config.bicep",
         '--parameters', "@$parameterFile")
     if ($deployment.properties.provisioningState -ne 'Succeeded') { throw 'API configuration failed' }
 } finally {

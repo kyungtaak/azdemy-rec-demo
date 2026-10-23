@@ -1,13 +1,19 @@
 import argparse
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 from uuid import UUID
 
 from api.main import create_app
 
 
-def definition(api_client_id: str) -> dict:
+def definition(api_client_id: str, api_url: str) -> dict:
     audience = f"api://{UUID(api_client_id)}"
+    endpoint = urlparse(api_url)
+    if (endpoint.scheme != "https" or not endpoint.hostname
+            or endpoint.username is not None or endpoint.password is not None
+            or endpoint.path not in {"", "/"} or endpoint.query or endpoint.fragment):
+        raise ValueError("API URL must be an absolute HTTPS service URL without credentials")
     return {
         "kind": "prompt",
         "model": "gpt-5.6-terra",
@@ -17,7 +23,7 @@ def definition(api_client_id: str) -> dict:
             "openapi": {
                 "name": "education",
                 "description": "Read-only synthetic education queries for the fixed authorized learner.",
-                "spec": create_app().openapi(),
+                "spec": create_app(api_url=api_url).openapi(),
                 "auth": {
                     "type": "managed_identity",
                     "security_scheme": {"audience": audience},
@@ -30,8 +36,10 @@ def definition(api_client_id: str) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-client-id", required=True)
+    parser.add_argument("--api-url", required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     arguments.output.write_text(
-        json.dumps({"definition": definition(arguments.api_client_id)}, ensure_ascii=False, indent=2),
+        json.dumps({"definition": definition(arguments.api_client_id, arguments.api_url)},
+                   ensure_ascii=False, indent=2),
         encoding="utf-8")

@@ -24,11 +24,11 @@ class AuthSettings:
 
     @classmethod
     def from_environment(cls):
-        tenant = str(UUID(os.environ["GENIUS_TENANT_ID"]))
-        audience = str(UUID(os.environ["GENIUS_API_CLIENT_ID"]))
-        mapping = json.loads(os.environ["GENIUS_PRINCIPAL_LEARNERS"])
+        tenant = str(UUID(os.environ["AZDEMY_TENANT_ID"]))
+        audience = str(UUID(os.environ["AZDEMY_API_CLIENT_ID"]))
+        mapping = json.loads(os.environ["AZDEMY_PRINCIPAL_LEARNERS"])
         if not isinstance(mapping, dict) or not mapping:
-            raise ValueError("GENIUS_PRINCIPAL_LEARNERS must be a nonempty object")
+            raise ValueError("AZDEMY_PRINCIPAL_LEARNERS must be a nonempty object")
         if any(not isinstance(v, str) or not v for v in mapping.values()):
             raise ValueError("Principal mappings must use nonempty learner IDs")
         return cls(tenant, audience, {str(UUID(k)): v for k, v in mapping.items()})

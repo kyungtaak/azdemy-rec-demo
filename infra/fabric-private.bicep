@@ -1,9 +1,9 @@
 param workspaceId string
 param tenantId string
 param location string = 'koreacentral'
-param vnetName string = 'vnet-genius-krc'
+param vnetName string = 'vnet-azdemy-krc'
 param tags object = {
-  project: 'genius-rec-demo'
+  project: 'azdemy-rec-demo'
   environment: 'demo'
   expiresOn: '2026-10-22'
 }
@@ -13,7 +13,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
 }
 
 resource linkService 'Microsoft.Fabric/privateLinkServicesForFabric@2024-06-01' = {
-  name: 'pls-genius-fabric'
+  name: 'pls-azdemy-fabric'
   location: 'global'
   tags: tags
   properties: {
@@ -30,7 +30,7 @@ resource dns 'Microsoft.Network/privateDnsZones@2024-06-01' = {
 
 resource dnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: dns
-  name: 'genius-fabric-vnet'
+  name: 'azdemy-fabric-vnet'
   location: 'global'
   properties: {
     registrationEnabled: false
@@ -39,7 +39,7 @@ resource dnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-
 }
 
 resource endpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
-  name: 'pe-genius-fabric'
+  name: 'pe-azdemy-fabric'
   location: location
   tags: tags
   properties: {

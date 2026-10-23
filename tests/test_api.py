@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -252,7 +253,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.get("/demo/courses/SYN-DEV-001").status_code, 200)
 
     def test_agent_definition_is_prompt_with_keyless_read_only_tools(self):
-        agent = definition(AUDIENCE)
+        api_url = "https://azdemy-test-api.azurewebsites.net"
+        agent = definition(AUDIENCE, api_url)
         self.assertEqual(agent["kind"], "prompt")
         self.assertEqual(agent["model"], "gpt-5.6-terra")
         self.assertNotIn("harness", agent)
@@ -261,6 +263,36 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(tool["auth"], {
             "type": "managed_identity", "security_scheme": {"audience": f"api://{AUDIENCE}"}})
         self.assertEqual(len(tool["spec"]["paths"]), 3)
+        self.assertEqual(tool["spec"]["servers"], [{"url": api_url}])
+
+    def test_agent_definition_rejects_invalid_deployment_urls(self):
+        for url in ("", "http://example.org", "/courses", "https://user@example.org",
+                    "https://example.org?query=1", "https://example.org#fragment",
+                    "https://example.org/courses"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                definition(AUDIENCE, url)
+
+    def test_local_openapi_does_not_point_to_a_deleted_deployment(self):
+        self.assertNotIn("servers", create_app().openapi())
+
+    def test_auth_settings_read_azdemy_environment(self):
+        with patch.dict(os.environ, {
+            "AZDEMY_TENANT_ID": TENANT,
+            "AZDEMY_API_CLIENT_ID": AUDIENCE,
+            "AZDEMY_PRINCIPAL_LEARNERS": json.dumps({PRINCIPAL: "learner-a"}),
+        }, clear=True):
+            self.assertEqual(AuthSettings.from_environment(), SETTINGS)
+
+    def test_publication_root_reads_azdemy_environment(self):
+        with TemporaryDirectory() as directory, patch.dict(
+            os.environ, {"AZDEMY_PUBLICATION_ROOT": directory}, clear=True
+        ), patch("api.main.get_auth_settings", return_value=SETTINGS), patch(
+            "api.main.process_pending"
+        ) as pending, patch("api.main.read_active_store", return_value=self.store):
+            app = create_app(self.store)
+            with TestClient(app):
+                self.assertEqual(app.state.publication_root, Path(directory))
+            pending.assert_called_once()
 
 
 class StoreValidationTests(unittest.TestCase):

@@ -122,7 +122,7 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 }
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: 'asp-genius-api'
+  name: 'asp-azdemy-api'
   location: location
   tags: tags
   kind: 'linux'

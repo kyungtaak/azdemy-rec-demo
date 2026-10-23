@@ -48,6 +48,14 @@ Version: v0.1
 - 검증 후 `kyungtaak/azdemy-rec-demo`를 Public 저장소로 게시하고 프로젝트 코드에 MIT License를 적용하도록 승인받았습니다. 기존 제3자 고지는 보존합니다.
 - 추가 Foundry 자동 생성 평가 suite는 이번 범위에서 제외합니다. 실제 API·상담 응답의 원본 대조와 로컬 회귀 검사 결과를 구분해 기록합니다.
 
+### 2026-10-22 전용 RG 정리와 다음 배포 이름
+
+- 사용자가 `rg-genius-rec-demo-krc` 전체 삭제를 승인했고, Azure 조회에서 RG가 존재하지 않음을 확인했습니다.
+- 공용 Fabric capacity·기존 workspace·중앙 로그·Entra 앱은 삭제하지 않습니다. Foundry·Key Vault soft-delete 항목의 purge도 승인 범위에 없습니다.
+- 다음 배포의 RG는 `rg-azdemy-rec-demo-krc`, Bicep 자원명·태그는 `azdemy`를 사용합니다. 앞 절의 기존 자원명 유지 원칙은 과거 검증 기록과 남아 있는 Fabric 항목에 적용합니다.
+- API 설정·런타임 환경변수는 `AZDEMY_*`로 함께 변경합니다. API 이름·URL·Foundry endpoint는 새 배포 출력값을 명시적으로 전달하며 이전 hostname을 기본값으로 사용하지 않습니다.
+- Fabric workspace·Delta 테이블·모델·게시 저장 경로의 이름 변경은 이번 범위에 없습니다. 새 자원 생성·재배포·권한 설정은 별도 승인과 검증이 필요합니다.
+
 방향은 맞습니다. **여기에 API용 추천 결과 게시, 사용자별 접근 권한, 추천 이력이 없는 사용자 처리, 모델 운영, 국내 처리 범위를 보완하면 Copilot에 전달할 요구사항 초안이 됩니다.**
 
 특히 **Lakehouse에 추천 결과를 저장하는 것과 Azdemy API가 사용자에게 응답하는 것은 별도 단계**입니다. API가 읽을 저장소와 게시 절차를 정의해야 합니다. 아래는 확정 요구와 설계 후보를 구분한 초안입니다.

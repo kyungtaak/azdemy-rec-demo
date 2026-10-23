@@ -1,6 +1,7 @@
 """Validate the compiled ARM resource inventory without contacting Azure."""
 
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -16,6 +17,9 @@ def resources(template):
 def validate(path):
     template = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     inventory = list(resources(template))
+    assert not re.search(r"genius|\bkt\b|\bkt[-_]", json.dumps(template), re.IGNORECASE)
+    assert template["variables"]["prefix"] == "[format('azdemy{0}', variables('suffix'))]"
+    assert template["variables"]["tags"]["project"] == "azdemy-rec-demo"
     by_type = {}
     for resource in inventory:
         by_type.setdefault(resource["type"], []).append(resource)
@@ -51,13 +55,20 @@ def validate(path):
     assert all(r["properties"]["allow"] is False for r in
                by_type["Microsoft.Web/sites/basicPublishingCredentialsPolicies"])
     bastion = one("Microsoft.Network/bastionHosts")
+    assert bastion["name"] == "bas-azdemy-krc"
     assert bastion["sku"]["name"] == "Standard"
     assert bastion["properties"]["scaleUnits"] == 2
     assert bastion["properties"]["enableTunneling"] is True
     nic = one("Microsoft.Network/networkInterfaces")
+    assert nic["name"] == "nic-azdemy-jump"
     assert all("publicIPAddress" not in c["properties"]
                for c in nic["properties"]["ipConfigurations"])
     vm = one("Microsoft.Compute/virtualMachines")
+    assert vm["name"] == "vm-azdemy-jump"
+    assert vm["properties"]["osProfile"]["computerName"] == "azdemy-jump"
+    assert vm["properties"]["storageProfile"]["osDisk"]["name"] == "disk-azdemy-jump"
+    assert one("Microsoft.Network/virtualNetworks")["name"] == "vnet-azdemy-krc"
+    assert one("Microsoft.Web/serverfarms")["name"] == "asp-azdemy-api"
     assert vm["properties"]["hardwareProfile"]["vmSize"] == "Standard_B2as_v2"
     assert vm["properties"]["osProfile"]["linuxConfiguration"]["disablePasswordAuthentication"] is True
     subnets = one("Microsoft.Network/virtualNetworks")["properties"]["subnets"]
@@ -89,7 +100,7 @@ def validate(path):
     assert len(private_template["variables"]["endpoints"]) == 6
     assert len(private_template["variables"]["zones"]) == 8
     assert template["parameters"]["sshPublicKey"]["type"].lower() == "securestring"
-    print("PASS: inventory, private/keyless boundaries, model, SKUs, Linux and Bastion invariants")
+    print("PASS: Azdemy naming, inventory, private/keyless boundaries, model, SKUs, Linux and Bastion invariants")
     print(json.dumps(Counter(r["type"] for r in inventory), indent=2))
 
 

@@ -13,9 +13,9 @@ param operatorObjectId string
 param expiresOn string
 
 var suffix = substring(uniqueString(resourceGroup().id), 0, 8)
-var prefix = 'genius${suffix}'
+var prefix = 'azdemy${suffix}'
 var tags = {
-  project: 'genius-rec-demo'
+  project: 'azdemy-rec-demo'
   environment: 'demo'
   expiresOn: expiresOn
   dataClassification: 'synthetic'
@@ -83,6 +83,7 @@ output foundryAccountName string = services.outputs.accountName
 output projectEndpoint string = 'https://${services.outputs.accountName}.services.ai.azure.com/api/projects/learning'
 output projectName string = 'learning'
 output modelDeployment string = 'gpt-5.6-terra'
+output apiName string = services.outputs.apiName
 output apiHostname string = '${services.outputs.apiName}.azurewebsites.net'
 output jumpVmId string = jump.outputs.vmId
 output jumpPrivateIp string = jump.outputs.privateIp

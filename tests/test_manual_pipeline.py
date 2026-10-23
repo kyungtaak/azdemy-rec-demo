@@ -58,7 +58,7 @@ class ManualPipelineTests(unittest.TestCase):
         self.assertIn("pipeline().TriggerTime", expression)
         self.assertNotIn("previous-batch", expression)
         self.assertNotIn("utcNow()", expression)
-        self.assertNotIn("GENIUS_PUBLICATION_ROOT", expression)
+        self.assertNotIn("AZDEMY_PUBLICATION_ROOT", expression)
 
     def test_definition_is_deterministic_does_not_mutate_state_and_requires_pinned_model(self):
         before = copy.deepcopy(self.state)

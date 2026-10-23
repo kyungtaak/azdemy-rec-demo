@@ -1,5 +1,10 @@
 # Azdemy Fabric 추천 배치
 
+2026-10-22 Azure 전용 RG를 삭제했으며 기존 Fabric workspace·capacity는 유지합니다.
+다음 Azure 배포는 `rg-azdemy-rec-demo-krc`와 `vm-azdemy-jump`를 사용합니다.
+아래 과거 검증 결과는 삭제한 API가 현재 실행 중이라는 의미가 아닙니다.
+새 자원과 Private 연결을 배포·검증한 뒤 게시 절차를 실행해야 합니다.
+
 기본 Spark ML 콘텐츠 기반 모델을 학습한 뒤, 승인 대상으로 선택한 모델로
 별도 배치를 실행합니다. 과정 30개와 학습자·이력·정책은 모두 합성입니다.
 품질 개선이나 실제 직원 대상 추천 품질을 증명하는 작업은 아닙니다.
@@ -166,7 +171,7 @@ what-if에서 PLS·PE·DNS 신규 생성만 확인한 뒤 배포합니다. 기�
 .\.venv\Scripts\python -m fabric.run train --state $State
 .\.venv\Scripts\python -m fabric.run batch --state $State
 .\.venv\Scripts\python -m fabric.run export --state $State --output $Export
-.\infra\publish-snapshot.ps1 -State $State -Export $Export
+.\infra\publish-snapshot.ps1 -State $State -Export $Export -ApiName $ApiName
 .\.venv\Scripts\python -m fabric.run stop --state $State
 ```
 
@@ -219,6 +224,12 @@ API 요청 하나는 변경 불가능한 release 하나를 읽습니다. 활성�
 
 [publish-snapshot.ps1](../infra/publish-snapshot.ps1)은 파일 전송, 저장소 표준
 Azure CLI 재시작, 개별 서버 receipt 확인을 순서대로 실행합니다.
+`$ApiName`은 새 [배포 출력](../infra/README.md#빌드와-배포)의 실제 앱 이름입니다.
+직접 `fabric.run`으로 게시·확인·복구할 때도 `--api-name $ApiName` 또는
+`AZDEMY_API_NAME` 환경변수를 지정해야 합니다. 고정된 이전 hostname으로
+자동 연결하지 않으며 SCM 요청은 지정한 앱의 hostname만 허용합니다.
+API의 게시 설정 키는 `AZDEMY_PUBLICATION_ROOT`이고 기존 저장 경로
+`/home/data/genius-recommendations`와 Delta 테이블 이름은 변경하지 않습니다.
 낮은 수준의 `fabric.run publish`는 전송 후 `status=pending`만 기록합니다.
 `az webapp restart` 후 `fabric.run confirm`이 해당 request ID·버전의
 `completed` receipt를 확인해야 게시 성공입니다. ARM 재시작 HTTP 200이나
@@ -242,7 +253,7 @@ Azure CLI 재시작, 개별 서버 receipt 확인을 순서대로 실행합니�
 만료됐으면 복구하지 않고 실패하며, 정상 조회에서 자동으로 Mock으로 바꾸지 않습니다.
 
 ```powershell
-.\infra\publish-snapshot.ps1 -State $State -Rollback
+.\infra\publish-snapshot.ps1 -State $State -Rollback -ApiName $ApiName
 ```
 
 완료한 export를 내려받고 필요한 게시를 마쳤다면 `pause`로 F4만 먼저 중지할 수

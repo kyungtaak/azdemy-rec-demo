@@ -1,6 +1,8 @@
 """Small operator-only REST client; tokens remain in memory and curl standard input."""
 
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +14,13 @@ from urllib.parse import urlparse
 
 _tokens: dict[str, tuple[float, str]] = {}
 _auth_cli = "az"
+
+
+def api_name() -> str:
+    value = os.environ.get("AZDEMY_API_NAME", "")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,58}[A-Za-z0-9]", value):
+        raise ValueError("AZDEMY_API_NAME must contain a deployed App Service name (2-60 characters)")
+    return value
 
 
 def configure_auth_cli(value: str) -> None:
@@ -53,10 +62,10 @@ def request(method: str, url: str, audience: str, body: bytes | None = None,
             allow_status: tuple[int, ...] = ()) -> tuple[int, dict[str, str], bytes]:
     parsed = urlparse(url)
     allowed = (
-        parsed.hostname in {"api.fabric.microsoft.com", "management.azure.com",
-                            "geniusmda53gutai.services.ai.azure.com"}
+        parsed.hostname in {"api.fabric.microsoft.com", "management.azure.com"}
         or (parsed.hostname or "").endswith(".fabric.microsoft.com")
-        or parsed.hostname == "geniusmda53gutapi.scm.azurewebsites.net"
+        or (os.environ.get("AZDEMY_API_NAME") is not None
+            and parsed.hostname == f"{api_name()}.scm.azurewebsites.net")
     )
     if parsed.scheme != "https" or not allowed:
         raise ValueError("Operator request target is not an approved HTTPS service")

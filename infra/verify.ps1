@@ -1,5 +1,5 @@
 param(
-    [string]$ResourceGroup = 'rg-genius-rec-demo-krc'
+    [string]$ResourceGroup = 'rg-azdemy-rec-demo-krc'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,12 +67,12 @@ foreach ($endpoint in $endpoints) {
 
 $zones = Invoke-AzJson -Arguments @('network', 'private-dns', 'zone', 'list', '--resource-group', $ResourceGroup)
 Assert-Equal @($zones).Count 8 'Private DNS zone count'
-$vm = Invoke-AzJson -Arguments @('vm', 'show', '--resource-group', $ResourceGroup, '--name', 'vm-genius-jump')
+$vm = Invoke-AzJson -Arguments @('vm', 'show', '--resource-group', $ResourceGroup, '--name', 'vm-azdemy-jump')
 Assert-Equal $vm.provisioningState 'Succeeded' 'Linux VM provisioning'
 Assert-Equal $vm.storageProfile.osDisk.osType 'Linux' 'Jump host OS'
-$nic = Invoke-AzJson -Arguments @('network', 'nic', 'show', '--resource-group', $ResourceGroup, '--name', 'nic-genius-jump')
+$nic = Invoke-AzJson -Arguments @('network', 'nic', 'show', '--resource-group', $ResourceGroup, '--name', 'nic-azdemy-jump')
 Assert-Equal (@($nic.ipConfigurations | Where-Object { $_.publicIPAddress }).Count) 0 'Jump host public IP count'
-$bastion = Invoke-AzJson -Arguments @('network', 'bastion', 'show', '--resource-group', $ResourceGroup, '--name', 'bas-genius-krc')
+$bastion = Invoke-AzJson -Arguments @('network', 'bastion', 'show', '--resource-group', $ResourceGroup, '--name', 'bas-azdemy-krc')
 Assert-Equal $bastion.sku.name 'Standard' 'Bastion SKU'
 Assert-Equal $bastion.enableTunneling $true 'Bastion native tunnel'
 Assert-Equal $bastion.provisioningState 'Succeeded' 'Bastion provisioning'

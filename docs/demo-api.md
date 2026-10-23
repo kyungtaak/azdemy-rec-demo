@@ -1,5 +1,10 @@
 # Azdemy 교육 추천·상담 데모 API
 
+2026-10-22 기존 데모 RG를 삭제했습니다. 아래 실제 구성·상담 결과는 삭제 전
+검증 기록입니다. 다음 배포에는 `azdemy` 자원명과 `AZDEMY_*` 설정을 사용하며,
+이전 API·Foundry 주소와 MI·앱 ID를 새 환경에 그대로 적용하지 않습니다.
+새 환경은 아직 배포·통합 검증하지 않았습니다.
+
 합성 과정 30개와 합성 학습자 2명을 사용하는 읽기 전용 데모입니다.
 2026-10-22 Azdemy API와 Prompt Agent를 재배포하고 새 native Fabric Spark 배치 결과를
 기존 Private App Service에 수동 게시했습니다.
@@ -130,8 +135,8 @@ python -m venv .venv
 .\.venv\Scripts\python -m compileall -q .\api .\agent
 ```
 
-실제 앱 기동에는 `GENIUS_TENANT_ID`, `GENIUS_API_CLIENT_ID`,
-`GENIUS_PRINCIPAL_LEARNERS` 환경변수가 필요합니다. 매핑 값은
+실제 앱 기동에는 `AZDEMY_TENANT_ID`, `AZDEMY_API_CLIENT_ID`,
+`AZDEMY_PRINCIPAL_LEARNERS` 환경변수가 필요합니다. 매핑 값은
 `{"허용할-object-id":"learner-a"}` 형식입니다. 테스트는 서명된 로컬 JWT와
 고정 시계·의존성 교체를 쓰며, 인증을 건너뛰는 앱 실행 모드는 없습니다.
 
@@ -146,11 +151,16 @@ python -m venv .venv
 배정 권한이 없으면 중단하며 API key·공개 접근으로 전환하지 않습니다.
 
 ```powershell
-.\infra\configure-api.ps1 -ToolPrincipalId 1380c4f0-06be-413c-8aee-2a4046ad5615
+.\infra\configure-api.ps1 -ApiName $ApiName -ToolPrincipalId $ToolPrincipalId
 .\.venv\Scripts\python .\infra\package_api.py --output "$env:TEMP\azdemy-api.zip"
-.\infra\publish-api.ps1 -Package "$env:TEMP\azdemy-api.zip"
-.\agent\publish.ps1 -ApiClientId 366a7288-b529-4b7f-a40d-03169869264f
+.\infra\publish-api.ps1 -ApiName $ApiName -Package "$env:TEMP\azdemy-api.zip"
+.\agent\publish.ps1 -ApiClientId $ApiClientId -ApiUrl $ApiUrl -ProjectEndpoint $ProjectEndpoint
 ```
+
+`$ApiName`·`$ApiUrl`·`$ProjectEndpoint`는 [Bicep 배포 출력](../infra/README.md#빌드와-배포),
+`$ToolPrincipalId`는 새 환경에서 확인한 실제 호출 주체, `$ApiClientId`는
+`configure-api.ps1`의 응답값을 사용합니다. 로컬 OpenAPI에는 고정 배포 주소가 없으며,
+Agent 정의 생성 시 명시한 HTTPS API URL을 `servers`에 넣습니다.
 
 계정·프로젝트·endpoint를 새 환경에서 재사용할 때는 각 스크립트의 명시적
 parameter와 앱의 server URL을 해당 환경에 맞춰 검토해야 합니다.
@@ -163,8 +173,8 @@ Windows 가상환경이나 키를 포함하지 않습니다.
 버전 번호를 명시해서 호출합니다.
 
 ```powershell
-.\agent\invoke.ps1 -AgentVersion 6 -Message '내 추천 교육과 추천 이유를 알려줘.' -OutputFile "$env:TEMP\azdemy-response.json"
-.\agent\invoke.ps1 -AgentVersion 6 -Message 'SYN-DEV-001과 SYN-DEV-002를 비교해줘.' -OutputFile "$env:TEMP\azdemy-comparison.json"
+.\agent\invoke.ps1 -ProjectEndpoint $ProjectEndpoint -AgentVersion $AgentVersion -Message '내 추천 교육과 추천 이유를 알려줘.' -OutputFile "$env:TEMP\azdemy-response.json"
+.\agent\invoke.ps1 -ProjectEndpoint $ProjectEndpoint -AgentVersion $AgentVersion -Message 'SYN-DEV-001과 SYN-DEV-002를 비교해줘.' -OutputFile "$env:TEMP\azdemy-comparison.json"
 ```
 
 스크립트는 액세스 토큰을 메모리와 curl 표준입력으로만 전달합니다.
