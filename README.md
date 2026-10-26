@@ -70,7 +70,7 @@ flowchart TB
     subgraph LandingZone["Azure Landing Zone · Korea Central"]
         direction TB
 
-        subgraph VNet["vnet-genius-krc · 10.72.0.0/16"]
+        subgraph VNet["vnet-azdemy-krc · 10.72.0.0/16"]
             Bastion["AzureBastionSubnet<br/>Bastion Standard"]
             Jump["jump subnet<br/>Linux Jump host · 공개 IP 없음"]
             AgentSubnet["agents subnet<br/>Foundry network injection"]
@@ -104,7 +104,7 @@ flowchart TB
     subgraph Fabric["Microsoft Fabric SaaS · 기존 F4 / Korea Central"]
         direction TB
 
-        subgraph Workspace["ws-genius-rec-demo · inbound Deny / outbound Allow"]
+        subgraph Workspace["추천 전용 Fabric workspace · inbound Deny / outbound Allow"]
             FabricEndpoint["Workspace API / OneLake"]
             Lakehouse[("Lakehouse<br/>합성 입력 / 코드 / Delta / export")]
             Training["Spark ML 학습<br/>MLflow 등록 모델"]
@@ -120,6 +120,8 @@ flowchart TB
     Operator -->|"관리 접속"| Bastion
     FabricPLS ---|"Workspace Private Link"| FabricEndpoint
 ```
+
+도식의 Azure 자원명은 다음 배포용 Bicep 기준이며, 새 환경은 아직 배포하지 않았습니다. Fabric workspace는 기존 리소스를 유지하며, 도식에는 실제 이름 대신 용도를 표시합니다.
 
 이 도식의 화살표는 작업 흐름, 방향 없는 선은 연결 관계, 점선은 DNS 연결을 나타냅니다. 서비스 인증에는 Entra ID·Managed Identity와 서비스별 RBAC를 적용합니다. PaaS 자체가 `private-endpoints` subnet에 배치된다는 뜻은 아니며, 해당 subnet에는 서비스 접근용 네트워크 인터페이스가 생성됩니다. Fabric 내부 Spark 실행은 고객 VNet 안의 실행이나 Fabric outbound 격리를 의미하지 않습니다.
 
